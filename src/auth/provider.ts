@@ -235,7 +235,7 @@ export class LocalOAuthProvider implements OAuthServerProvider {
       response.redirect(302, redirect.href);
       return;
     }
-    response.type('html').send(`<!doctype html><html lang="ru"><meta charset="utf-8"><meta http-equiv="refresh" content="2"><title>CloudHands: подтверждение</title><body><h1>Подтвердите подключение в терминале CloudHands</h1><p>Запрос: <strong>${pending.id}</strong></p><p>В локальном терминале проверьте клиента, callback и права, затем введите <code>approve ${pending.id}</code> или <code>deny ${pending.id}</code>.</p><p>Эта страница обновится автоматически. Запрос действует 5 минут.</p></body></html>`);
+    response.type('html').send(`<!doctype html><html lang="en"><meta charset="utf-8"><meta http-equiv="refresh" content="2"><title>CloudHands: connection approval</title><body><h1>Approve the connection in the CloudHands terminal</h1><p>Request: <strong>${pending.id}</strong></p><p>In your local terminal, verify the client, callback URL, and requested permissions, then enter <code>approve ${pending.id}</code> or <code>deny ${pending.id}</code>.</p><p>This page refreshes automatically. The request expires after 5 minutes.</p></body></html>`);
   }
 
   private findCode(client: OAuthClientInformationFull, code: string): Code {

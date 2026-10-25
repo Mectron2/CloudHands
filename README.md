@@ -8,7 +8,7 @@ Run CloudHands on your machine, connect a web chat that supports external MCP se
 
 **Your machine hosts the tools. You approve connections. You choose permissions.**
 
-[Quick start](#quick-start) · [Tools](#available-tools) · [Remote access](#connect-a-web-chat-remotely) · [Configuration](#configuration) · [Troubleshooting](#troubleshooting)
+[Quick start](#quick-start) · [Docker](#run-with-docker) · [Tools](#available-tools) · [Remote access](#connect-a-web-chat-remotely) · [Configuration](#configuration) · [Troubleshooting](#troubleshooting)
 
 ## Why CloudHands?
 
@@ -35,7 +35,35 @@ CloudHands on your computer  ◄── You approve access in the terminal
 
 For a remotely hosted web chat, expose CloudHands through a reachable HTTPS endpoint, such as a tunnel. Local MCP clients can connect directly to localhost.
 
-## Quick start
+## Quick start with Docker
+
+With Docker running in Linux container mode, build the image:
+
+```sh
+docker build -t cloudhands .
+```
+
+Start it with your project mounted at `/workspace` and a named volume for OAuth state.
+
+**Windows / PowerShell:**
+
+```powershell
+docker run --rm --init -it --name cloudhands -p 127.0.0.1:3000:3000 --mount "type=bind,source=C:\Projects\my-app,target=/workspace" --mount type=volume,source=cloudhands-state,target=/var/lib/cloudhands cloudhands
+```
+
+**Linux / macOS:**
+
+```sh
+docker run --rm --init -it --name cloudhands -p 127.0.0.1:3000:3000 --mount "type=bind,source=$HOME/projects/my-app,target=/workspace" --mount type=volume,source=cloudhands-state,target=/var/lib/cloudhands cloudhands
+```
+
+Replace the bind mount's source with an existing project directory. Connect to `http://127.0.0.1:3000/mcp`. Keep `-it`: enter `approve`, `pending`, and other access commands directly in this terminal. Stop with **Ctrl+C**; the named state volume survives container removal. Keep the same volume, public origin, and workspace mount to preserve connections.
+
+The image runs as the unprivileged `node` user and includes Bash, Git, `fd`, and `rg`. On Linux, the mounted project must be accessible to that user (UID/GID `1000:1000` by default). Tools operate inside the Linux container and can access mounted files; the shell tool is `bash`, including when Docker runs on Windows.
+
+For a web chat, run your tunnel on the host and add `-e MCP_PUBLIC_URL=https://YOUR-DOMAIN.ngrok-free.app` **before `cloudhands`** in the run command. See [remote access](#connect-a-web-chat-remotely) for the remaining connection steps. The published port is bound to the host's loopback interface.
+
+## Run from source
 
 You need **Node.js 22.19+**, npm, and a client that supports **Streamable HTTP and OAuth**.
 

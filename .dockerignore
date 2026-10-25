@@ -1,0 +1,7 @@
+# Send only the files needed to build the application.
+**
+!package.json
+!package-lock.json
+!tsconfig.json
+!src/
+!src/**
