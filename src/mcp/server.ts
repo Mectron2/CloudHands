@@ -6,7 +6,7 @@ import { toolScope } from '../auth/scopes.js';
 export function createMcpServer(tools: readonly McpTool[]): Server {
   const registry = new Map(tools.map((tool) => [tool.definition.name, tool]));
   const server = new Server(
-    { name: 'llm-gate', version: '1.0.0' },
+    { name: 'CloudHands', version: '1.0.0' },
     { capabilities: { tools: {} } },
   );
 

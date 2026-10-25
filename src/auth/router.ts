@@ -29,12 +29,12 @@ export function createOAuthRouter(provider: LocalOAuthProvider) {
   router.use(['/token', '/revoke'], tokenLimit, express.urlencoded({ extended: false, limit: '16kb' }), provider.clientsStore.authenticate());
   router.use('/token', tokenHandler({ provider, rateLimit: false }));
   router.use('/revoke', revocationHandler({ provider, rateLimit: false }));
-  router.use(mcpAuthMetadataRouter({ oauthMetadata: metadata, resourceServerUrl: provider.resource, scopesSupported: [...SCOPES], resourceName: 'llm-gate' }));
+  router.use(mcpAuthMetadataRouter({ oauthMetadata: metadata, resourceServerUrl: provider.resource, scopesSupported: [...SCOPES], resourceName: 'CloudHands' }));
   router.use('/.well-known/oauth-protected-resource', metadataHandler({
     resource: provider.resource.href,
     authorization_servers: [provider.issuer.href],
     scopes_supported: [...SCOPES],
-    resource_name: 'llm-gate',
+    resource_name: 'CloudHands',
   }));
   router.get('/oauth/pending/:id', (request, response) => provider.pendingPage(request, response));
 

@@ -101,7 +101,7 @@ export class OAuthStore {
       }
       try {
         process.kill(previous.pid, 0);
-        throw new Error('Another llm-gate process is using MCP_STATE_DIR');
+        throw new Error('Another CloudHands process is using MCP_STATE_DIR');
       } catch (probeError) {
         if (!record(probeError) || probeError.code !== 'ESRCH') {
           throw probeError;

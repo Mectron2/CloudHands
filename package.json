@@ -1,7 +1,7 @@
 {
-  "name": "llm-gate",
+  "name": "cloudhands",
   "version": "1.0.0",
-  "description": "HTTP MCP server exposing Pi Coding Agent tools",
+  "description": "CloudHands connects MCP clients to local files and shell tools with terminal-approved OAuth",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {

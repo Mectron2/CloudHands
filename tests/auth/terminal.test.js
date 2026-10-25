@@ -21,7 +21,7 @@ async function waitFor(predicate) {
 }
 
 beforeAll(async () => {
-  root = await mkdtemp(join(tmpdir(), 'llm-gate-cli-'));
+  root = await mkdtemp(join(tmpdir(), 'cloudhands-cli-'));
   const workspace = join(root, 'workspace');
   await mkdir(workspace);
   const env = {

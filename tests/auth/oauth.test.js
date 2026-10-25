@@ -50,7 +50,7 @@ async function mcp(token, method = 'tools/list', params = {}, sessionId) {
 }
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), 'llm-gate-oauth-'));
+  root = await mkdtemp(join(tmpdir(), 'cloudhands-oauth-'));
   workspace = join(root, 'workspace');
   stateDirectory = join(root, 'state');
   await mkdir(workspace);
@@ -88,7 +88,7 @@ test('requires local approval and binds the browser continuation to an HttpOnly 
   expect(await waiting.text()).toContain(`approve ${flow.id}`);
   const missingCookie = await fetch(`${baseUrl}${flow.page}`, { redirect: 'manual' });
   expect(missingCookie.status).toBe(404);
-  const forgedCookie = await fetch(`${baseUrl}${flow.page}`, { headers: { Cookie: `llm_gate_${flow.id}=forged` }, redirect: 'manual' });
+  const forgedCookie = await fetch(`${baseUrl}${flow.page}`, { headers: { Cookie: `cloudhands_${flow.id}=forged` }, redirect: 'manual' });
   expect(forgedCookie.status).toBe(404);
   expect((await form('/oauth/approve', { id: flow.id, approve: 'true' })).status).toBe(404);
   expect(application.auth.listConnections()).toEqual([]);

@@ -132,7 +132,7 @@ export class LocalOAuthProvider implements OAuthServerProvider {
       decision: 'pending',
     };
     this.pending.set(id, pending);
-    response.cookie(`llm_gate_${id}`, browserSecret, {
+    response.cookie(`cloudhands_${id}`, browserSecret, {
       httpOnly: true, secure: this.issuer.protocol === 'https:', sameSite: 'lax',
       path: `/oauth/pending/${id}`, maxAge: APPROVAL_SECONDS * 1000,
     });
@@ -196,7 +196,7 @@ export class LocalOAuthProvider implements OAuthServerProvider {
     const id = request.params.id;
     const pending = typeof id === 'string' ? this.pending.get(id) : undefined;
     const cookie = request.headers.cookie?.split(';').map((value) => value.trim())
-      .find((value) => value.startsWith(`llm_gate_${id}=`))?.split('=')[1];
+      .find((value) => value.startsWith(`cloudhands_${id}=`))?.split('=')[1];
     response.setHeader('Cache-Control', 'no-store');
     response.setHeader('Referrer-Policy', 'no-referrer');
     response.setHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
@@ -230,12 +230,12 @@ export class LocalOAuthProvider implements OAuthServerProvider {
         challenge: pending.params.codeChallenge, expiresAt: Date.now() / 1000 + 60,
       });
       this.pending.delete(pending.id);
-      response.clearCookie(`llm_gate_${pending.id}`, { path: `/oauth/pending/${pending.id}` });
+      response.clearCookie(`cloudhands_${pending.id}`, { path: `/oauth/pending/${pending.id}` });
       redirect.searchParams.set('code', code);
       response.redirect(302, redirect.href);
       return;
     }
-    response.type('html').send(`<!doctype html><html lang="ru"><meta charset="utf-8"><meta http-equiv="refresh" content="2"><title>llm-gate: подтверждение</title><body><h1>Подтвердите подключение в терминале llm-gate</h1><p>Запрос: <strong>${pending.id}</strong></p><p>В локальном терминале проверьте клиента, callback и права, затем введите <code>approve ${pending.id}</code> или <code>deny ${pending.id}</code>.</p><p>Эта страница обновится автоматически. Запрос действует 5 минут.</p></body></html>`);
+    response.type('html').send(`<!doctype html><html lang="ru"><meta charset="utf-8"><meta http-equiv="refresh" content="2"><title>CloudHands: подтверждение</title><body><h1>Подтвердите подключение в терминале CloudHands</h1><p>Запрос: <strong>${pending.id}</strong></p><p>В локальном терминале проверьте клиента, callback и права, затем введите <code>approve ${pending.id}</code> или <code>deny ${pending.id}</code>.</p><p>Эта страница обновится автоматически. Запрос действует 5 минут.</p></body></html>`);
   }
 
   private findCode(client: OAuthClientInformationFull, code: string): Code {

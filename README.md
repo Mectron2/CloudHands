@@ -1,124 +1,155 @@
-# llm-gate
+# ☁️ CloudHands
 
-A TypeScript MCP server that exposes the built-in Pi Coding Agent tools over Streamable HTTP. A built-in OAuth server grants access after confirmation in the local terminal. No external sign-in provider or user password is required.
+### Your favorite web chat. Your local workspace. Connected.
 
-## Getting started
+CloudHands is a **self-hosted, open-source bridge between LLM web chats and your computer**. The idea is simple: use the free web chats offered by model providers, and give the LLM tools to work with your local files and terminal through MCP.
 
-Requires Node.js 22.19 or newer.
+Run CloudHands on your machine, connect a web chat that supports external MCP servers, and approve access in your terminal. The chat becomes a practical helper for reading code, editing files, searching projects, and running commands.
+
+**Your machine hosts the tools. You approve connections. You choose permissions.**
+
+[Quick start](#quick-start) · [Tools](#available-tools) · [Remote access](#connect-a-web-chat-remotely) · [Configuration](#configuration) · [Troubleshooting](#troubleshooting)
+
+## Why CloudHands?
+
+- **Bring the web chat you already use.** Connect a compatible provider-hosted chat to your local workspace, without a separate model API key in CloudHands.
+- **Self-host the bridge.** Run the server yourself and keep its configuration and access controls on your machine.
+- **Approve connections locally.** Built-in OAuth asks for confirmation in your terminal, without an external identity provider or application password.
+- **Choose the permissions.** Allow file reading, file writing, shell execution, or a subset of the permissions requested by the client.
+- **Work across platforms.** Use PowerShell on Windows and Bash on Linux or macOS.
+
+CloudHands provides tools, not model inference. The LLM still runs with your chat provider, and tool results are sent to the connected client. A provider's free chat must support external MCP connections for this to work; availability depends on the client and account.
+
+## How it works
+
+```text
+Web chat / MCP client
+        │
+        │ Streamable HTTP + OAuth
+        ▼
+CloudHands on your computer  ◄── You approve access in the terminal
+        │
+        ├── Read, search, and edit files
+        └── Run PowerShell or Bash commands
+```
+
+For a remotely hosted web chat, expose CloudHands through a reachable HTTPS endpoint, such as a tunnel. Local MCP clients can connect directly to localhost.
+
+## Quick start
+
+You need **Node.js 22.19+**, npm, and a client that supports **Streamable HTTP and OAuth**.
+
+### 1. Install and build
+
+From the project directory:
 
 ```sh
 npm ci
 npm run build
-npm start
 ```
 
-MCP endpoint: `http://127.0.0.1:3000/mcp`. It requires an OAuth Bearer token, including for the initialization request. Availability check without authorization: `GET http://127.0.0.1:3000/health`.
+### 2. Choose a workspace and start
 
-Environment variables:
-
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `HOST` | `127.0.0.1` | Listen address |
-| `PORT` | `3000` | HTTP port; `0` picks a free port |
-| `MCP_CWD` | Current directory | Working directory for the tools |
-| `MCP_PUBLIC_URL` | Local listener address | External HTTPS origin used for OAuth discovery, callback continuation, and token binding; a trailing `/mcp` is allowed |
-| `MCP_STATE_DIR` | `%LOCALAPPDATA%\llm-gate` on Windows; `$XDG_STATE_HOME/llm-gate` or `~/.local/state/llm-gate` on Linux/macOS | OAuth storage; must be outside any shared directory |
-| `MCP_ALLOWED_HOSTS` | SDK's localhost check | Comma-separated list of allowed Host names; for a reverse proxy or tunnel, add its domain |
-| `MCP_ALLOWED_ORIGINS` | Same HTTP origin only | Comma-separated list of additional browser origins, for example `http://localhost:6274` for MCP Inspector |
-
-PowerShell example:
+**Windows / PowerShell:**
 
 ```powershell
-$env:MCP_CWD = 'C:\Projects\example'
-$env:PORT = '3000'
+$env:MCP_CWD = 'C:\Projects\my-app'
 npm start
 ```
 
-## Connecting through ngrok
+**Linux / macOS:**
 
-Start the tunnel first:
+```sh
+MCP_CWD="$HOME/projects/my-app" npm start
+```
+
+Or run `npm start` without `MCP_CWD` to use the current directory. Keep this terminal open: it is where you approve connections.
+
+### 3. Connect your client
+
+| Setting | Value |
+| --- | --- |
+| Name | `CloudHands` |
+| Transport | Streamable HTTP |
+| Local endpoint | `http://127.0.0.1:3000/mcp` |
+| Authentication | OAuth |
+
+For a web chat hosted by a provider, follow [Connect a web chat remotely](#connect-a-web-chat-remotely) and use the public HTTPS endpoint instead of localhost.
+
+Start the client's OAuth flow. Clients with dynamic registration do not need a preconfigured Client ID or Client Secret.
+
+### 4. Approve and try it
+
+CloudHands prints the request ID, client details, callback URL, and requested permissions. Check them, then enter this in the **running CloudHands terminal**:
+
+```text
+approve <request-id>
+```
+
+Replace `<request-id>` with the displayed ID. To grant only file reading when requested, enter `approve <request-id> files:read`. The browser continues automatically after approval.
+
+Try asking your connected chat:
+
+> List the files in my workspace, read the README, and explain how the project is organized.
+
+**Health check:** `http://127.0.0.1:3000/health` returns `{"status":"ok"}` when available. Opening `/mcp` without an OAuth token returns `401`, including during initialization.
+
+## Available tools
+
+Built on the Pi Coding Agent tools, CloudHands exposes six file tools and one platform-specific shell:
+
+| Tool | What it does | Permission |
+| --- | --- | --- |
+| `read` | Read files, including images | `files:read` |
+| `ls` | List directory contents | `files:read` |
+| `find` | Find files by glob | `files:read` |
+| `grep` | Search file contents | `files:read` |
+| `write` | Write files and create parent directories | `files:write` |
+| `edit` | Make targeted text replacements | `files:write` |
+| `powershell` / `bash` | Run commands in the platform's shell | `commands:execute` |
+
+Clients only see the tools allowed by their token.
+
+`find` uses `fd`, and `grep` uses `rg`. Pi looks for them in PATH and its own binaries directory, and may download them if missing. For offline use, install both in advance and set `PI_OFFLINE=1` to disable automatic downloads. Windows needs PowerShell; Linux and macOS need Bash.
+
+> **Know what you grant:** Tools run with the server process's privileges. `MCP_CWD` selects a working directory; it does not sandbox the filesystem. Shell access can read or change anything the process can access, regardless of file scopes. Grant it only to clients you trust.
+
+## Connect a web chat remotely
+
+With ngrok installed, start a tunnel:
 
 ```sh
 ngrok http 3000
 ```
 
-Set the issued HTTPS URL and start the server in another PowerShell window:
+Then set the issued HTTPS origin and start CloudHands in another terminal.
+
+**Windows / PowerShell:**
 
 ```powershell
 $env:MCP_PUBLIC_URL = 'https://YOUR-DOMAIN.ngrok-free.app'
-npm run build
+$env:MCP_CWD = 'C:\Projects\my-app'
 npm start
 ```
 
-The `MCP_PUBLIC_URL` domain is automatically added to the allowed Hosts alongside localhost. If the server is already running, stop it with Ctrl+C and start it again in the same window where the variable is set. The public URL is read when the process starts. Changing the URL or `MCP_CWD` resets the saved OAuth connections and registrations: you will need to confirm them again. To keep connections, use a stable external URL.
+**Linux / macOS:**
 
-In ChatGPT, enter `https://YOUR-DOMAIN.ngrok-free.app/mcp` and choose OAuth. If the client supports dynamic registration, the Client ID / Client Secret fields can be left empty. If the client requires static credentials, use the local `register` command described below. Public client registration does not by itself grant access.
-
-A `403` response with the message `Invalid Host: ...` means the Host check failed, which a client may display as an authentication problem. If the response body contains `Origin is not allowed`, add the client's actual Origin to `MCP_ALLOWED_ORIGINS`. The `X-Forwarded-Host` and `X-Forwarded-Proto` headers do not, on their own, allow an external Host or Origin.
-
-## OAuth and local confirmation
-
-The client discovers the OAuth endpoints, registers, and starts the Authorization Code flow with PKCE S256. The browser opens a waiting page tied to an HttpOnly/SameSite cookie. The page has no button that grants access, and there is no public confirmation endpoint either.
-
-The terminal of the running `llm-gate` shows the request ID, the name the client claims, the Client ID, the exact callback URL, and the requested permissions. Check the callback against the client's settings, and confirm only a connection that you started yourself: the client name is supplied by the client and does not prove its authenticity.
-
-```text
-pending
-approve <request-id>
-approve <request-id> files:read
-deny <request-id>
-connections
-revoke <connection-id>
-help
+```sh
+MCP_PUBLIC_URL='https://YOUR-DOMAIN.ngrok-free.app' MCP_CWD="$HOME/projects/my-app" npm start
 ```
 
-`approve` without a list of scopes grants all requested scopes. You can choose a subset, comma-separated, for example `files:read,files:write`. You cannot add a scope that was not requested. No token is issued without local confirmation; a request waits for at most 5 minutes. A closed stdin does not automatically confirm requests.
+In the chat's external MCP server settings, enter `https://YOUR-DOMAIN.ngrok-free.app/mcp` and select OAuth. Approve the request in your CloudHands terminal. The public URL's hostname is automatically allowed alongside localhost.
 
-| Scope | Tools |
-| --- | --- |
-| `files:read` | `read`, `ls`, `find`, `grep` |
-| `files:write` | `write`, `edit` |
-| `commands:execute` | The shell of the current OS |
+If CloudHands is already running, stop it with **Ctrl+C** and restart it with the new environment variables. Changing the public origin or working directory resets saved OAuth registrations and connections, so clients must reconnect and be approved again. Use a stable public URL to preserve connections across restarts.
 
-`tools/list` shows only the tools allowed by the token. Every MCP request checks the token and the required scopes; MCP sessions are bound to a specific confirmed connection.
+### Client configuration example
 
-After confirmation, the browser passes the client a one-time code that is valid for 60 seconds. The client exchanges it, with PKCE verification, for an access token valid for about 15 minutes and a refresh token. The grant is valid for 30 days from the moment of confirmation. The refresh token is rotated on every exchange; reusing an old refresh token revokes the entire connection. `revoke` immediately blocks new requests and closes the active MCP sessions of that connection. The standard `/revoke` endpoint is also supported.
-
-For a client that requires a static Client ID / Client Secret, copy the exact redirect URI from its settings and enter the following in the local terminal:
-
-```text
-register https://client.example/callback My client
-```
-
-The secret is shown only once. Public clients with PKCE (`none`), `client_secret_post`, and `client_secret_basic` are supported. OAuth metadata is published at `/.well-known/oauth-authorization-server`, and protected resource metadata at `/.well-known/oauth-protected-resource/mcp` and the root alias. The service endpoints are rate-limited. The limits use the real socket address; behind ngrok they are shared across the tunnel, and a client-supplied `X-Forwarded-For` is not trusted.
-
-`MCP_STATE_DIR` holds `oauth.json`: registrations, grants, expiry times, and hashes of client secrets and tokens. The original tokens are neither stored nor printed to the terminal. One-time codes and pending confirmations exist only in memory. The state is written atomically; a second process using the same directory does not start OAuth, and corrupted state is not accepted. Keep the directory to preserve connections across restarts; deleting it resets the connections. Access to the directory must remain with the application owner.
-
-## Built-in tools
-
-| Tool | Purpose | Platforms |
-| --- | --- | --- |
-| `read` | Read files, including images | All |
-| `write` | Write files and create parent directories | All |
-| `edit` | Targeted text replacements | All |
-| `ls` | Directory contents | All |
-| `find` | Find files by glob | All |
-| `grep` | Search file contents | All |
-| `powershell` | Run PowerShell commands | Windows |
-| `bash` | Run Bash commands | Linux/macOS |
-
-The platform is determined via `process.platform` when the tool catalog is created. The server publishes seven tools; the shell that does not fit the platform is absent from both `tools/list` and the call registry.
-
-`find` uses `fd` and `grep` uses `rg`. Pi looks for them in PATH and in its own binaries directory; if they are missing, it may download them automatically. To work offline, install these utilities in advance; `PI_OFFLINE=1` disables Pi's automatic download. On Windows the installed PowerShell is used; on Linux/macOS, Bash is required.
-
-The tools run with the privileges of the server process. `MCP_CWD` sets the working directory but does not restrict access to the file system. OAuth controls the connection and the set of tools; it does not replace an OS sandbox. In particular, `commands:execute` lets the shell read and modify anything the process can access, regardless of the file scopes. An OS sandbox is not implemented in this version.
-
-## Connecting an MCP client
+For clients that accept an `mcpServers` configuration, this illustrates the settings:
 
 ```json
 {
   "mcpServers": {
-    "llm-gate": {
+    "cloudhands": {
       "type": "http",
       "url": "http://127.0.0.1:3000/mcp"
     }
@@ -126,79 +157,119 @@ The tools run with the privileges of the server process. `MCP_CWD` sets the work
 }
 ```
 
-The names of the configuration fields depend on the client. Streamable HTTP is used, not the deprecated standalone SSE endpoint.
+Field names vary by client. Use its Streamable HTTP transport and OAuth flow. CloudHands has no unauthenticated MCP mode or separate legacy SSE endpoint.
 
-The server supports MCP initialization, independent HTTP sessions, and session termination via `DELETE /mcp`. Subsequent requests pass the received `Mcp-Session-Id`; an SDK client does this automatically. Cancellation of an MCP request is passed to the tool through an `AbortSignal`; stopping the server closes the sessions and cancels active operations.
+If a client requires a static Client ID and Client Secret, copy its exact redirect URI and enter this in the running CloudHands terminal:
 
-Pi schemas are passed through as JSON Schema without manual rewriting and are validated before execution. The low-level MCP SDK `Server` is used so that the TypeBox schemas are preserved directly. Argument errors are returned as protocol errors; execution errors are returned as a result with `isError: true`, including Pi errors returned without an exception. Text and images are kept in `content`, Pi's machine-readable result in `structuredContent`, and additional Pi data in `structuredContent.details`. The catalog carries MCP annotations for read and modify operations.
+```text
+register https://client.example/callback My client
+```
 
-## Client compatibility
+Save the returned secret; it is shown only once. Registration alone does not grant access: you still approve the connection locally.
 
-Verified on October 26, 2026.
+## Manage access
 
-| Client | Verification result |
+Enter these commands in the terminal running CloudHands:
+
+| Command | Action |
 | --- | --- |
-| Claude Code 2.1.272 | Real connection to the HTTP server with a Bearer token issued after OAuth confirmation: `claude mcp get` returned `Connected`; the temporary configuration was removed |
-| MCP TypeScript SDK 1.32.2 | Full OAuth flow: discovery, dynamic registration, PKCE, local confirmation, token exchange, and HTTP calls in Jest |
-| ChatGPT desktop / Codex host | According to the official documentation, they support direct Streamable HTTP connections; a connection from the ChatGPT interface was not performed |
-| ChatGPT web | Supports Streamable HTTP through a custom MCP server/plugin; requires a reachable HTTPS endpoint or Secure MCP Tunnel, an account, and the relevant permissions; a cloud connection was not performed |
+| `pending` | List requests awaiting approval |
+| `approve <request-id>` | Grant all requested permissions |
+| `approve <request-id> files:read,files:write` | Grant a subset of requested permissions |
+| `deny <request-id>` | Reject a request |
+| `connections` | List connections and their status |
+| `revoke <connection-id>` | Revoke access and close its active MCP sessions |
+| `register <redirect-uri> [name]` | Create credentials for a client requiring a static secret |
+| `help` | Show available commands |
 
-The Claude Code check confirms that an MCP connection is established. Tool calls and the full OAuth flow were verified separately through the MCP SDK; no request was sent to a Claude model. Interactive OAuth sign-in from ChatGPT/Claude was not tested in an account. Compatibility with these interfaces is inferred from their documented transport and OAuth support.
+Only approve connections you initiated. The client name is self-reported; verify the callback URL against your client's settings. Requests expire after five minutes. Approval cannot add permissions that the client did not request.
 
-Connecting Claude Code:
+<details>
+<summary><strong>OAuth and saved connections</strong></summary>
+
+- Authorization Code flow uses PKCE S256. The waiting page is bound to an HttpOnly/SameSite cookie and cannot grant access. There is no public approval endpoint; closed stdin never approves requests automatically.
+- One-time codes expire after 60 seconds. Access tokens last about 15 minutes; grants last 30 days from approval.
+- Refresh tokens rotate on every exchange. Reusing an old refresh token revokes the entire connection.
+- Every MCP request checks its token and required scopes. Sessions belong to a specific approved connection. The standard `/revoke` endpoint is supported.
+- Public PKCE clients (`none`), `client_secret_post`, and `client_secret_basic` are supported.
+- OAuth discovery is at `/.well-known/oauth-authorization-server`; resource metadata is at `/.well-known/oauth-protected-resource/mcp` and its root alias.
+- OAuth endpoints are rate-limited using the real socket address. Behind a tunnel, clients share those limits; client-supplied `X-Forwarded-For` is not trusted.
+- `MCP_STATE_DIR/oauth.json` stores registrations, grants, expiry times, and hashes of secrets and tokens. Original tokens are neither stored nor printed. Pending requests and one-time codes stay in memory.
+- State is written atomically. A second process cannot use the same state directory, and corrupted state is rejected. Keep the directory private and outside the shared workspace; deleting it resets connections.
+
+</details>
+
+## Configuration
+
+Set environment variables before starting CloudHands.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `HOST` | `127.0.0.1` | Listen address |
+| `PORT` | `3000` | HTTP port; `0` chooses a free port |
+| `MCP_CWD` | Current directory | Working directory for tools |
+| `MCP_PUBLIC_URL` | Local listener origin | External HTTPS origin for OAuth discovery and token binding; a trailing `/mcp` is accepted |
+| `MCP_STATE_DIR` | Platform state directory below | Private OAuth storage; must be outside `MCP_CWD` |
+| `MCP_ALLOWED_HOSTS` | SDK localhost check | Comma-separated allowed hostnames; the public URL hostname is added automatically when configured |
+| `MCP_ALLOWED_ORIGINS` | Same HTTP origin and configured public origin | Comma-separated additional browser origins, such as `http://localhost:6274` |
+
+Default state directories:
+
+- **Windows:** `%LOCALAPPDATA%\cloudhands` (falls back to `~/AppData/Local/cloudhands`).
+- **Linux / macOS:** `$XDG_STATE_HOME/cloudhands`, or `~/.local/state/cloudhands` when unset.
+
+## Troubleshooting
+
+| Symptom | What to check |
+| --- | --- |
+| The web chat has no external MCP option | Use a client or account that supports external MCP servers, Streamable HTTP, and OAuth. |
+| `401` from `/mcp` | Complete OAuth and approve locally. MCP requests require a Bearer token; use `/health` for an unauthenticated availability check. |
+| `403` with `Invalid Host: ...` | Set `MCP_PUBLIC_URL` to your tunnel's HTTPS origin, or add the hostname to `MCP_ALLOWED_HOSTS`, then restart. |
+| `403` with `Origin is not allowed` | Add the client's actual browser origin to `MCP_ALLOWED_ORIGINS` and restart. |
+| Browser is waiting for approval | Enter `pending` in the server terminal and approve the matching request. Restart sign-in if it expired. |
+| A tool is missing | Check the connection's scopes. Only one shell is exposed for your platform. |
+| `MCP_STATE_DIR must be outside MCP_CWD` | Choose a private state directory outside the workspace shared with tools. |
+| Another process is using `MCP_STATE_DIR` | Stop the other CloudHands instance or choose a different private state directory. |
+| Connections reset after restarting | Keep the same state directory, public origin, and working directory. |
+| `find` or `grep` fails offline | Install `fd` and `rg` in advance and ensure they are available to Pi. |
+
+Forwarded headers such as `X-Forwarded-Host` and `X-Forwarded-Proto` do not automatically authorize a Host or Origin.
+
+## Development
 
 ```sh
-claude mcp add --transport http llm-gate http://127.0.0.1:3000/mcp
-claude mcp login llm-gate
-claude mcp get llm-gate
+npm run build          # Compile TypeScript into dist/
+npm test               # Build and run Jest
+npm run test:coverage  # Run tests with coverage
 ```
 
-Codex host configuration:
+Tests exercise real HTTP servers, MCP SDK clients, OAuth flows, temporary workspaces, and Pi tool operations. Shell selection is checked for Windows, Linux, and macOS. Protocol negotiation is covered for `2025-03-26`, `2025-06-18`, and `2025-11-25`.
 
-```toml
-[mcp_servers.llm_gate]
-url = "http://127.0.0.1:3000/mcp"
-```
+Client compatibility depends on its transport, OAuth support, and configuration. Automated SDK tests do not establish that an interactive sign-in works in every client interface.
 
-For ChatGPT web, add a custom MCP server with the HTTPS URL `/mcp` and choose OAuth. Set `MCP_PUBLIC_URL` to the external HTTPS origin. For a browser client, add its origin to `MCP_ALLOWED_ORIGINS` if necessary. CORS preflight, OAuth discovery, and session header passing are supported. There is no mode for accessing MCP without authentication.
-
-Jest verifies negotiation of the protocol versions `2025-03-26`, `2025-06-18`, and `2025-11-25`. Separate `search`/`fetch` tools are not implemented: the server is intended for ordinary tool calls, not for the company knowledge mode.
-
-Official sources: [Claude Code MCP](https://code.claude.com/docs/en/mcp), [ChatGPT custom MCP server](https://developers.openai.com/api/docs/guides/custom-mcp-server), [ChatGPT: endpoint requirements](https://developers.openai.com/plugins/deploy/connect-chatgpt), [ChatGPT desktop / Codex MCP](https://learn.chatgpt.com/docs/extend/mcp).
-
-## Structure
+<details>
+<summary><strong>Project structure and protocol details</strong></summary>
 
 ```text
 src/
-  config.ts
-  index.ts
-  auth/
-    clients.ts
-    provider.ts
-    router.ts
-    scopes.ts
-    secrets.ts
-    store.ts
-    terminal.ts
-  http/server.ts
-  mcp/server.ts
-  tools/adapter.ts
-  tools/catalog.ts
+  index.ts          # Startup and shutdown
+  config.ts         # Environment configuration
+  auth/             # OAuth, state storage, scopes, terminal approval
+  http/server.ts    # HTTP routing, sessions, host and origin checks
+  mcp/server.ts     # MCP requests and permission filtering
+  tools/            # Pi tool catalog and MCP adapter
 tests/
-  config.test.js
-  auth/oauth.test.js
-  auth/store.test.js
-  auth/terminal.test.js
-  http/server.test.js
-  tools/adapter.test.js
-  tools/catalog.test.js
+  auth/             # OAuth flows, storage, terminal commands
+  http/             # HTTP sessions and host validation
+  tools/            # Tool schemas, adapter, platform selection
+  config.test.js    # Configuration validation
+  helpers/          # Shared OAuth test helpers
 ```
 
-## Testing
+The server supports independent MCP sessions and termination through `DELETE /mcp`. Subsequent requests use `Mcp-Session-Id`; SDK clients handle this automatically. Cancellation reaches tools through an `AbortSignal`; shutdown closes sessions and cancels active operations.
 
-```sh
-npm test
-npm run test:coverage
-```
+Pi's TypeBox schemas pass through as JSON Schema and are validated before execution. Argument errors become protocol errors; execution failures return `isError: true`. Text and images remain in `content`, machine-readable results in `structuredContent`, and extra Pi data in `structuredContent.details`. Tools include MCP annotations for read and modify operations.
 
-Jest first builds the TypeScript, then runs tests against the built ESM modules. The integration tests use a real HTTP server, an MCP SDK client, a temporary directory, and the built-in Pi operations. Shell selection for Windows, Linux, and macOS is verified separately.
+Separate `search` / `fetch` tools are not implemented. CloudHands exposes ordinary MCP tool calls.
+
+</details>

@@ -14,8 +14,8 @@ export interface ServerConfig {
 
 export function defaultStateDirectory(env: NodeJS.ProcessEnv = process.env): string {
   return process.platform === 'win32'
-    ? join(env.LOCALAPPDATA ?? join(homedir(), 'AppData', 'Local'), 'llm-gate')
-    : join(env.XDG_STATE_HOME ?? join(homedir(), '.local', 'state'), 'llm-gate');
+    ? join(env.LOCALAPPDATA ?? join(homedir(), 'AppData', 'Local'), 'cloudhands')
+    : join(env.XDG_STATE_HOME ?? join(homedir(), '.local', 'state'), 'cloudhands');
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {

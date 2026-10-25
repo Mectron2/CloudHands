@@ -11,7 +11,7 @@ const applications = [];
 const stateDirectories = [];
 
 async function start(allowedHosts) {
-  const stateDirectory = await mkdtemp(join(tmpdir(), 'llm-gate-host-state-'));
+  const stateDirectory = await mkdtemp(join(tmpdir(), 'cloudhands-host-state-'));
   stateDirectories.push(stateDirectory);
   const application = createHttpServer({ host: '127.0.0.1', port: 0, cwd: process.cwd(), stateDirectory, allowedHosts });
   applications.push(application);
@@ -69,7 +69,7 @@ test('initializes through an explicitly allowed tunnel with OAuth', async () => 
   const authorization = { Authorization: `Bearer ${tokens.access_token}` };
   const response = await initialize(port, tunnelHost, { 'X-Forwarded-Proto': 'https', ...authorization });
   expect(response.status).toBe(200);
-  expect(response.body.result.serverInfo.name).toBe('llm-gate');
+  expect(response.body.result.serverInfo.name).toBe('CloudHands');
   expect(response.headers['mcp-session-id']).toBeTruthy();
   expect(response.headers['www-authenticate']).toBeUndefined();
   expect((await initialize(port, `localhost:${port}`, authorization)).status).toBe(200);

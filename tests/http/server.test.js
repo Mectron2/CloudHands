@@ -20,8 +20,8 @@ const shell = process.platform === 'win32' ? 'powershell' : 'bash';
 const excludedShell = process.platform === 'win32' ? 'bash' : 'powershell';
 
 beforeAll(async () => {
-  directory = await mkdtemp(join(tmpdir(), 'llm-gate-test-'));
-  stateDirectory = await mkdtemp(join(tmpdir(), 'llm-gate-state-test-'));
+  directory = await mkdtemp(join(tmpdir(), 'cloudhands-test-'));
+  stateDirectory = await mkdtemp(join(tmpdir(), 'cloudhands-state-test-'));
   application = createHttpServer({ host: '127.0.0.1', port: 0, cwd: directory, stateDirectory, allowedOrigins: ['https://client.example.com'] });
   await new Promise((resolve, reject) => {
     application.server.once('error', reject);

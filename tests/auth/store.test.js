@@ -9,7 +9,7 @@ let directory;
 const stores = [];
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), 'llm-gate-store-'));
+  root = await mkdtemp(join(tmpdir(), 'cloudhands-store-'));
   workspace = join(root, 'workspace');
   directory = join(root, 'state');
   await mkdir(workspace);
@@ -37,7 +37,7 @@ test('resolves directory junctions before checking state isolation', async () =>
 
 test('prevents concurrent processes from using the same state directory', () => {
   const first = open();
-  expect(() => open()).toThrow('Another llm-gate process');
+  expect(() => open()).toThrow('Another CloudHands process');
   first.close();
   expect(() => open()).not.toThrow();
 });

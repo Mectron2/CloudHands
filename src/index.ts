@@ -21,7 +21,7 @@ async function main(): Promise<void> {
     await application.close();
     throw error;
   }
-  console.log(`MCP server listening at http://${host}:${port}/mcp`);
+  console.log(`CloudHands MCP server listening at http://${host}:${port}/mcp`);
   console.log(`OAuth MCP URL: ${application.auth.resource.href}`);
   console.log('Authentication: OAuth; approve new connections in this terminal');
   console.log(`Working directory: ${config.cwd}`);
