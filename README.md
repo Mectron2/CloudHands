@@ -8,7 +8,7 @@ Run CloudHands on your machine, connect a web chat that supports external MCP se
 
 **Your machine hosts the tools. You approve connections. You choose permissions.**
 
-[Quick start](#quick-start) · [Docker](#run-with-docker) · [Tools](#available-tools) · [Remote access](#connect-a-web-chat-remotely) · [Configuration](#configuration) · [Troubleshooting](#troubleshooting)
+[Quick start with Docker](#quick-start-with-docker) · [Run from source](#run-from-source) · [Tools](#available-tools) · [Remote access](#connect-a-web-chat-remotely) · [Configuration](#configuration) · [Troubleshooting](#troubleshooting)
 
 ## Why CloudHands?
 
@@ -64,6 +64,9 @@ The image runs as the unprivileged `node` user and includes Bash, Git, `fd`, and
 For a web chat, run your tunnel on the host and add `-e MCP_PUBLIC_URL=https://YOUR-DOMAIN.ngrok-free.app` **before `cloudhands`** in the run command. See [remote access](#connect-a-web-chat-remotely) for the remaining connection steps. The published port is bound to the host's loopback interface.
 
 ## Run from source
+
+> [!WARNING]
+> **Running without Docker is a security risk: For now, CloudHands provides no built-in sandbox.** File and shell tools run directly on your computer with the server process's permissions and can access files outside `MCP_CWD`. OAuth approval controls access to tools; it does not isolate their execution. Use the Docker setup for container isolation, and mount only the directories you intend to share. Files mounted with write access can still be modified or deleted by tools inside the container.
 
 You need **Node.js 22.19+**, npm, and a client that supports **Streamable HTTP and OAuth**.
 
