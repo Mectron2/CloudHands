@@ -20,6 +20,12 @@ Run CloudHands on your machine, connect a web chat that supports external MCP se
 
 CloudHands provides tools, not model inference. The LLM still runs with your chat provider, and tool results are sent to the connected client. A provider's free chat must support external MCP connections for this to work; availability depends on the client and account.
 
+## CloudHands in action
+
+Ask in the web chat, see the results in your local project. In this example, Claude uses CloudHands to create a text file, write a Node.js script, and run it to generate three more files. The files appear in the host project directory mounted into the container.
+
+![Claude using CloudHands to create and run a Node.js script, with the generated files visible in the local PowerShell terminal](.images/img.png)
+
 ## How it works
 
 ```text
@@ -62,6 +68,30 @@ Replace the bind mount's source with an existing project directory. Connect to `
 The image runs as the unprivileged `node` user and includes Bash, Git, `fd`, and `rg`. On Linux, the mounted project must be accessible to that user (UID/GID `1000:1000` by default). Tools operate inside the Linux container and can access mounted files; the shell tool is `bash`, including when Docker runs on Windows.
 
 For a web chat, run your tunnel on the host and add `-e MCP_PUBLIC_URL=https://YOUR-DOMAIN.ngrok-free.app` **before `cloudhands`** in the run command. See [remote access](#connect-a-web-chat-remotely) for the remaining connection steps. The published port is bound to the host's loopback interface.
+
+### Let the LLM install tools: run as root
+
+To let the LLM install the tools and dependencies it needs inside the container, add `--user root` before the image name. After you grant `commands:execute`, the LLM can use Bash to install Python, compilers, system packages, and other Linux-compatible tools using `apt-get` or appropriate package managers. Installation still depends on network access and package availability.
+
+**Windows / PowerShell:**
+
+```powershell
+docker run --rm --init -it --user root --name cloudhands -p 127.0.0.1:3000:3000 --mount "type=bind,source=C:\Projects\my-app,target=/workspace" --mount type=volume,source=cloudhands-state,target=/var/lib/cloudhands cloudhands
+```
+
+**Linux / macOS:**
+
+```sh
+docker run --rm --init -it --user root --name cloudhands -p 127.0.0.1:3000:3000 --mount "type=bind,source=$HOME/projects/my-app,target=/workspace" --mount type=volume,source=cloudhands-state,target=/var/lib/cloudhands cloudhands
+```
+
+For example, ask your connected chat:
+
+> Install Python and the dependencies needed for this project inside the container, then run its tests.
+
+You can add `-e MCP_PUBLIC_URL=https://YOUR-DOMAIN.ngrok-free.app` before `cloudhands` in these commands when connecting a remote web chat. Keep terminal approval enabled and grant shell access only to clients you trust.
+
+Packages installed while the container is running remain only for that container's lifetime. With `--rm`, they disappear when it stops; the `cloudhands-state` volume preserves OAuth state, not installed programs. Add frequently used tools to the Dockerfile to include them in future containers.
 
 ## Run from source
 
