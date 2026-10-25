@@ -1,0 +1,30 @@
+{
+  "name": "llm-gate",
+  "version": "1.0.0",
+  "description": "HTTP MCP server exposing Pi Coding Agent tools",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "npm run build && node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
+    "test:coverage": "npm test -- --coverage"
+  },
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "^1.4.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.1"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.5",
+    "jest": "^30.5.2",
+    "typescript": "^6.0.3"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=22.19.0"
+  }
+}
